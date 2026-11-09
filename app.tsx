@@ -376,7 +376,7 @@ function ThreadTab(props: ThreadTabProps) {
             {
               key: "top-tabs-close-right",
               group: THREAD_ACTION_GROUPS.open,
-              action: { label: "Close tabs to the right", icon: "ArrowRightToLine", run: props.onCloseRight },
+              action: { label: "Close tabs to the right", icon: "ArrowRight", run: props.onCloseRight },
             },
           ]
         : []),
