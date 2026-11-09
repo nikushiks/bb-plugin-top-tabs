@@ -480,7 +480,11 @@ function shellCss(mac: boolean, fullScreen: boolean): string {
 }
 [data-top-tabs-bar] {
   --btt-bar: var(--surface-recessed-solid, var(--muted));
+  /* The active tab takes the color of whatever sits right under the bar, so
+     it reads as one surface with it. On the web that is the page header
+     (--background). */
   --btt-active: var(--background);
+  --btt-active-tint: transparent;
   --btt-ink: var(--foreground);
   --btt-muted: var(--muted-foreground);
   --btt-hover: color-mix(in oklab, var(--foreground) 7%, transparent);
@@ -555,8 +559,15 @@ function shellCss(mac: boolean, fullScreen: boolean): string {
   background: var(--btt-hover);
   pointer-events: none;
 }
+/* In the desktop app bb frames the window (data-framed on the sidebar
+   wrapper), and the strip under the bar is that frame: bg-sidebar with a
+   --surface-recessed layer on top. Paint the same two layers. */
+body:has([data-framed]) [data-top-tabs-bar] {
+  --btt-active: var(--sidebar);
+  --btt-active-tint: var(--surface-recessed, transparent);
+}
 [data-top-tabs-bar] .btt-tab[data-active] {
-  background: var(--btt-active);
+  background: linear-gradient(var(--btt-active-tint), var(--btt-active-tint)), var(--btt-active);
   color: var(--btt-ink);
   z-index: 1;
 }
@@ -570,7 +581,9 @@ function shellCss(mac: boolean, fullScreen: boolean): string {
   bottom: 0;
   width: 10px;
   height: 10px;
-  background: radial-gradient(circle at var(--btt-cx) 0, transparent 9.5px, var(--btt-active) 10px);
+  background:
+    radial-gradient(circle at var(--btt-cx) 0, transparent 9.5px, var(--btt-active-tint) 10px),
+    radial-gradient(circle at var(--btt-cx) 0, transparent 9.5px, var(--btt-active) 10px);
 }
 [data-top-tabs-bar] .btt-tab[data-active]::before { left: -10px; --btt-cx: 0; }
 [data-top-tabs-bar] .btt-tab[data-active]::after { right: -10px; left: auto; --btt-cx: 100%; }
