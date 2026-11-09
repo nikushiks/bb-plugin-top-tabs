@@ -62,6 +62,33 @@ function isMacDesktop(): boolean {
   return typeof w.bbDesktop !== "undefined" && /mac/i.test(platform || navigator.userAgent);
 }
 
+type DesktopWindowState = { isFullScreen: boolean };
+type DesktopWindowApi = {
+  getWindowState?(): Promise<DesktopWindowState>;
+  onWindowStateChange?(listener: (state: DesktopWindowState) => void): () => void;
+};
+
+// macOS hides the traffic lights in full screen, so the bar no longer needs
+// to leave room for them. Older bb builds lack these hooks; assume windowed.
+function useFullScreen(enabled: boolean): boolean {
+  const [fullScreen, setFullScreen] = useState(false);
+  useEffect(() => {
+    if (!enabled) return;
+    const desktop = (window as unknown as { bbDesktop?: DesktopWindowApi }).bbDesktop;
+    let alive = true;
+    const apply = (state: DesktopWindowState | undefined) => {
+      if (alive && state) setFullScreen(state.isFullScreen);
+    };
+    const unsubscribe = desktop?.onWindowStateChange?.(apply);
+    desktop?.getWindowState?.().then(apply, () => {});
+    return () => {
+      alive = false;
+      unsubscribe?.();
+    };
+  }, [enabled]);
+  return fullScreen;
+}
+
 // ---------------------------------------------------------------------------
 // Tab list state
 
@@ -141,6 +168,7 @@ function ThreadTabsBar() {
   const navigate = useBbNavigate();
   const { tabs, setIds, projectNames } = useTabList(activeThreadId);
   const [mac] = useState(isMacDesktop);
+  const fullScreen = useFullScreen(mac);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropHint, setDropHint] = useState<{ id: string; after: boolean } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -228,7 +256,7 @@ function ThreadTabsBar() {
 
   return (
     <>
-      <style>{shellCss(mac)}</style>
+      <style>{shellCss(mac, fullScreen)}</style>
       <div className="btt-bar" data-top-tabs-bar="" data-mac={mac ? "" : undefined}>
         <div className="btt-scroll" ref={scrollRef} role="tablist" aria-label="Open threads">
           {tabs.map((thread, index) => {
@@ -428,9 +456,12 @@ function ThreadTab(props: ThreadTabProps) {
 // Styles. Plain CSS keyed to bb's theme tokens so light, dark and custom
 // palettes follow automatically.
 
-function shellCss(mac: boolean): string {
+function shellCss(mac: boolean, fullScreen: boolean): string {
   const h = `${BAR_HEIGHT}px`;
-  const leading = mac ? "80px" : "8px";
+  // bb places the macOS traffic lights at x=17, so they end near 70px. The
+  // strip adds 10px of its own for the active tab's curved corner. In full
+  // screen the traffic lights are hidden, so no inset is needed.
+  const leading = !mac ? "8px" : fullScreen ? "0px" : "72px";
   return `
 /* Only #root moves. html and body keep the full window height, because bb
    compares body.clientHeight with visualViewport.height to detect an
