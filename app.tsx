@@ -195,13 +195,19 @@ function ThreadTabsBar() {
     return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
   }, [tabs, activeThreadId, navigate]);
 
-  // Keep the active tab in view when the strip scrolls.
+  // Keep the active tab in view when the strip scrolls. Scroll the strip
+  // itself: scrollIntoView would also scroll the document, which bb resets.
   useEffect(() => {
-    if (!activeThreadId) return;
-    const el = scrollRef.current?.querySelector<HTMLElement>(
+    const strip = scrollRef.current;
+    if (!activeThreadId || !strip) return;
+    const el = strip.querySelector<HTMLElement>(
       `[data-thread-tab-id="${CSS.escape(activeThreadId)}"]`,
     );
-    el?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (!el) return;
+    const left = el.offsetLeft - strip.offsetLeft;
+    const right = left + el.offsetWidth;
+    if (left < strip.scrollLeft) strip.scrollLeft = left - 10;
+    else if (right > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = right - strip.clientWidth + 10;
   }, [activeThreadId, tabs.length]);
 
   const onTabDragOver = (event: DragEvent<HTMLDivElement>, id: string) => {
@@ -426,14 +432,16 @@ function shellCss(mac: boolean): string {
   const h = `${BAR_HEIGHT}px`;
   const leading = mac ? "80px" : "8px";
   return `
+/* Only #root moves. html and body keep the full window height, because bb
+   compares body.clientHeight with visualViewport.height to detect an
+   on-screen keyboard; a shorter body makes it rewrite the shell height on
+   every focus change (the app jumps and flickers). The transform makes #root
+   the containing block for bb's fixed-position sidebar. */
 @media (min-width: ${MIN_WIDTH_PX}px) {
-  html.bb-app-shell-root {
-    --bb-shell-height: calc(100dvh - ${h}) !important;
-    padding-top: ${h};
-    box-sizing: content-box;
-  }
   body.bb-app-shell #root {
-    transform: translateZ(0);
+    --bb-shell-height: calc(100dvh - ${h}) !important;
+    height: calc(100% - ${h}) !important;
+    transform: translateY(${h});
   }
 }
 @media (max-width: ${MIN_WIDTH_PX - 1}px) {
