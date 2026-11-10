@@ -1,6 +1,6 @@
 {
   "name": "bb-plugin-top-tabs",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Browser-style tabs for the threads you open, across the top of the bb window.",
   "license": "MIT",
   "repository": {
