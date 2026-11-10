@@ -458,10 +458,10 @@ function ThreadTab(props: ThreadTabProps) {
 
 function shellCss(mac: boolean, fullScreen: boolean): string {
   const h = `${BAR_HEIGHT}px`;
-  // The macOS traffic lights end near 66px. With the strip's own 10px (room
-  // for the active tab's curved corner), the first tab sits about one button
-  // gap after them. In full screen they are hidden, so no inset is needed.
-  const leading = !mac ? "8px" : fullScreen ? "0px" : "60px";
+  // Reserve 80px for the macOS traffic lights, including the wider spacing
+  // on macOS 27. The scroll strip's 10px padding holds the active tab's flare.
+  // In full screen the traffic lights are hidden, so no inset is needed.
+  const leading = !mac ? "8px" : fullScreen ? "0px" : "80px";
   return `
 /* Only #root moves. html and body keep the full window height, because bb
    compares body.clientHeight with visualViewport.height to detect an
